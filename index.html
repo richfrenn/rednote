@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RedNote Creator Board</title>
+<style>
+/* Layout: Bauhaus production board. Header composition, a month target strip, then six stage columns left to right.
+   No external fonts or scripts, so the page loads on campus networks in China. */
+:root {
+  --bg: #FFFFFF;
+  --paper: #F1F3F8;
+  --ink: #111318;
+  --muted: #5B6170;
+  --line: #D5D9E2;
+  --blue: #1D4E9E;
+  --on-blue: #FFFFFF;
+  --yellow: #F2C230;
+  --on-yellow: #111318;
+  --mark: #111318;
+  --warn: #9A6400;
+  --card: #FFFFFF;
+  --shadow: 0 1px 0 rgba(17,19,24,.06), 0 6px 18px -10px rgba(17,19,24,.25);
+  --font: "Futura", "Avenir Next", "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  --cn: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0F1218; --paper: #171B23; --ink: #ECEEF3; --muted: #9AA1B2; --line: #2B313D;
+    --blue: #5B8BE0; --on-blue: #0F1218; --mark: #ECEEF3;
+    --warn: #E5B25A; --card: #1C212B; --shadow: 0 1px 0 rgba(0,0,0,.3), 0 8px 20px -12px rgba(0,0,0,.8);
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.45;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-top: max(28px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(48px, env(safe-area-inset-bottom, 0px));
+}
+[hidden] { display: none !important; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.cn { font-family: var(--cn); }
+
+/* Header */
+.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; max-width: 1400px; margin-inline: auto; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+h1 { margin: 6px 0 4px; font-size: clamp(34px, 6vw, 60px); line-height: .95; font-weight: 700; letter-spacing: -.02em; text-wrap: balance; }
+.sub { margin: 10px 0 0; color: var(--muted); max-width: 52ch; }
+.comp { position: relative; width: 190px; height: 130px; flex: none; }
+.comp .c { position: absolute; right: 0; top: 0; width: 120px; height: 120px; border-radius: 50%; background: var(--blue); }
+.comp .s { position: absolute; left: 10px; bottom: 0; width: 72px; height: 72px; background: var(--yellow); }
+.comp .t { position: absolute; left: 92px; bottom: 0; width: 54px; height: 50px; background: var(--mark); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.comp .b { position: absolute; left: 10px; right: 0; bottom: -10px; height: 6px; background: var(--mark); }
+
+/* Target strip */
+.strip { max-width: 1400px; margin: 34px auto 0; display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; border-top: 2px solid var(--ink); padding-top: 16px; }
+.target { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.target .lab { font-weight: 600; }
+.blocks { display: flex; gap: 6px; flex-wrap: wrap; }
+.blocks i { width: 22px; height: 22px; border: 2px solid var(--ink); display: block; }
+.blocks i.on { background: var(--yellow); border-color: var(--yellow); }
+.target .num { font-variant-numeric: tabular-nums; color: var(--muted); }
+.stagecounts { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.stagecounts b { color: var(--ink); font-weight: 600; }
+
+/* Toolbar */
+.bar { max-width: 1400px; margin: 18px auto 14px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { border: 2px solid var(--ink); background: transparent; padding: 9px 16px; font-weight: 600; border-radius: 0; }
+.btn:hover { background: var(--paper); }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: var(--on-blue); }
+.btn.primary:hover { filter: brightness(1.08); background: var(--blue); }
+.btn.quiet { border-color: var(--line); font-weight: 500; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1.5px solid var(--line); background: transparent; padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 500; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.search { flex: 1 1 200px; max-width: 320px; margin-left: auto; border: 1.5px solid var(--line); background: var(--bg); padding: 8px 12px; border-radius: 0; }
+.notice { max-width: 1400px; margin: 0 auto 14px; padding: 10px 14px; background: var(--paper); border-left: 6px solid var(--yellow); font-size: 14px; }
+.sync { font-size: 12px; color: var(--muted); }
+
+/* Board */
+.boardwrap { max-width: 1400px; margin-inline: auto; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; }
+.board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(196px, 1fr); gap: 12px; min-width: min-content; }
+.col { background: var(--paper); padding: 12px; min-height: 340px; display: flex; flex-direction: column; gap: 10px; scroll-snap-align: start; }
+.colhead { display: flex; align-items: center; gap: 10px; padding-bottom: 8px; border-bottom: 2px solid var(--ink); }
+.shape { width: 16px; height: 16px; flex: none; }
+.shape.circle { border-radius: 50%; }
+.shape.tri { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.colhead .nm { font-weight: 700; font-size: 16px; }
+.colhead .cnl { font-size: 13px; color: var(--muted); }
+.colhead .ct { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
+.colhint { font-size: 12px; color: var(--muted); margin-top: -4px; }
+.empty { font-size: 13px; color: var(--muted); padding: 10px 2px; }
+
+.card { background: var(--card); box-shadow: var(--shadow); padding: 12px 12px 10px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; border: 1.5px solid transparent; }
+.card:hover { border-color: var(--line); }
+.card .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tag { font-size: 11px; font-weight: 600; letter-spacing: .02em; padding: 2px 7px; border: 1.5px solid var(--line); }
+.tag.fhss { background: var(--blue); border-color: var(--blue); color: var(--on-blue); }
+.tag.mine { background: var(--yellow); border-color: var(--yellow); color: var(--on-yellow); }
+.card h3 { margin: 2px 0 0; font-size: 16px; line-height: 1.25; font-weight: 600; overflow-wrap: anywhere; }
+.card .aud { margin: 0; font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.card .meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); align-items: center; }
+.card .meta .team { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.due { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.due.late { color: var(--warn); font-weight: 600; }
+.adv { align-self: flex-start; margin-top: 2px; border: 0; background: transparent; padding: 2px 0; font-size: 12px; font-weight: 600; color: var(--blue); }
+.adv:hover { text-decoration: underline; }
+
+/* Modal */
+.overlay { position: fixed; inset: 0; background: rgba(10,12,16,.55); z-index: 50; display: flex; justify-content: center; align-items: flex-start; overflow-y: auto;
+  padding: max(24px, env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) max(24px, env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.panel { background: var(--bg); width: 100%; max-width: 680px; border-top: 10px solid var(--blue); padding: 22px 22px 26px; display: flex; flex-direction: column; gap: 18px; }
+.panel.report { border-top-color: var(--yellow); }
+.phead { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.phead h2 { margin: 0; font-size: 26px; line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; }
+.phead .who { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.x { border: 0; background: transparent; font-size: 28px; line-height: 1; padding: 0 4px; color: var(--muted); }
+.steps { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.step { border: 0; background: var(--paper); padding: 8px 4px 7px; font-size: 12px; font-weight: 600; text-align: center; min-width: 0; }
+.step span { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+.step.done { background: var(--line); }
+.step.cur { background: var(--blue); color: var(--on-blue); }
+.step.cur span { color: var(--on-blue); opacity: .85; }
+.step[disabled] { cursor: default; }
+.stepnote { font-size: 13px; color: var(--muted); margin-top: -8px; }
+form.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.f { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.f.full { grid-column: 1 / -1; }
+.f label { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.f label em { font-style: normal; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.f input, .f select, .f textarea { border: 1.5px solid var(--line); background: var(--bg); padding: 9px 10px; border-radius: 0; width: 100%; }
+.f input:focus, .f select:focus, .f textarea:focus { border-color: var(--blue); outline: none; }
+.f textarea { min-height: 76px; resize: vertical; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.actions .spacer { flex: 1; }
+.danger { border: 0; background: transparent; color: var(--muted); text-decoration: underline; padding: 6px 0; font-size: 13px; }
+.danger.arm { color: var(--warn); font-weight: 600; }
+.fb { border-top: 2px solid var(--ink); padding-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+.fb h4 { margin: 0; font-size: 15px; }
+.fbitem { background: var(--paper); padding: 9px 11px; font-size: 14px; }
+.fbitem .by { font-size: 12px; color: var(--muted); margin-bottom: 3px; display: flex; gap: 8px; align-items: baseline; }
+.fbitem .by .danger { margin-left: auto; padding: 0; font-size: 12px; }
+.fbitem p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.fbform { display: flex; gap: 8px; flex-wrap: wrap; }
+.fbform input { flex: 1 1 160px; min-width: 0; border: 1.5px solid var(--line); background: var(--bg); padding: 9px 10px; }
+.fbform input.nm { flex: 0 1 130px; }
+.report textarea { width: 100%; min-height: 200px; font-family: var(--mono); font-size: 13px; border: 1.5px solid var(--line); background: var(--paper); padding: 12px; }
+.small { font-size: 13px; color: var(--muted); margin: 0; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(20px, env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; font-size: 14px; z-index: 80; max-width: calc(100% - 32px); }
+
+@media (max-width: 640px) {
+  .top { grid-template-columns: 1fr; }
+  .comp { display: none; }
+  form.grid { grid-template-columns: 1fr; }
+  .search { max-width: none; margin-left: 0; }
+  .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .card { transition: border-color .15s, transform .15s; }
+  .card:hover { transform: translateY(-1px); }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <div class="eyebrow">FHSS / UNNC</div>
+    <h1>RedNote Creator Board</h1>
+    <p class="sub">Add an idea, then move it along as it gets made. Ideas come from you; Richard helps shape them, and Marketing checks anything going on the FHSS account.</p>
+  </div>
+  <div class="comp" aria-hidden="true"><div class="c"></div><div class="s"></div><div class="t"></div><div class="b"></div></div>
+</header>
+
+<section class="strip" aria-label="This month">
+  <div class="target">
+    <span class="lab" id="monthLabel">This month</span>
+    <div class="blocks" id="blocks"></div>
+    <span class="num" id="targetNum"></span>
+  </div>
+  <div class="stagecounts" id="stageCounts"></div>
+</section>
+
+<div class="bar">
+  <button class="btn primary" id="newBtn" type="button">+ New idea</button>
+  <div class="chips" role="group" aria-label="Filter">
+    <button class="chip" data-f="all" aria-pressed="true" type="button">All</button>
+    <button class="chip" data-f="me" aria-pressed="false" type="button">Added by me</button>
+    <button class="chip" data-f="fhss" aria-pressed="false" type="button">FHSS account</button>
+    <button class="chip" data-f="own" aria-pressed="false" type="button">Own accounts</button>
+  </div>
+  <button class="btn quiet" id="reportBtn" type="button">Monthly update</button>
+  <input class="search" id="search" type="search" placeholder="Search titles, teams, formats" aria-label="Search">
+</div>
+
+<div class="notice" id="notice" hidden></div>
+
+<div class="boardwrap"><div class="board" id="board"></div></div>
+<p class="sync" id="sync" style="max-width:1400px;margin:10px auto 0"></p>
+
+<div id="modalRoot"></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+/* =====================================================================
+   SETTINGS: paste your Supabase details here (see README.md).
+   Leave both blank to run in demo mode (saves only in your own browser).
+   The anon key is meant to be public. Never paste the service_role key.
+   ===================================================================== */
+const CONFIG = {
+  SUPABASE_URL: "https://tfnjedgiuykrixopsrxj.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRmbmplZGdpdXlrcml4b3BzcnhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMyNjUzMTcsImV4cCI6MjEwODg0MTMxN30.uA9mIjF6nbugFssyMKRmFN0vQ3jppJAHCw03O8tp2ls",   // the "Publishable" key (sb_publishable_...) or the older "anon public" key (eyJ...)
+  MONTHLY_TARGET: 4,       // videos posted per month
+  REFRESH_SECONDS: 20,     // how often the board checks for other people's changes
+};
+
+(() => {
+  const STAGES = [
+    { id: "idea",   en: "Idea",     cn: "想法",   shape: "circle", color: "var(--blue)",   hint: "Anyone can add one" },
+    { id: "plan",   en: "Planning", cn: "策划",   shape: "square", color: "var(--yellow)", hint: "Shape it with Richard" },
+    { id: "film",   en: "Filming",  cn: "拍摄",   shape: "tri",    color: "var(--mark)",   hint: "" },
+    { id: "edit",   en: "Editing",  cn: "剪辑",   shape: "circle", color: "var(--yellow)", hint: "" },
+    { id: "check",  en: "Check",    cn: "审核",   shape: "square", color: "var(--mark)",   hint: "Richard, then Marketing for FHSS posts" },
+    { id: "posted", en: "Posted",   cn: "已发布", shape: "tri",    color: "var(--blue)",   hint: "" },
+  ];
+  const FORMATS = [
+    "Trend", "沉浸式 Immersive", "一日vlog Day in the life", "避雷 Wish I'd known",
+    "预期 vs 现实 Expectation vs reality", "POV", "随机采访 Random interviews", "图文 Image post", "Other",
+  ];
+  const ACCOUNTS = { undecided: "Not decided", mine: "My account", fhss: "FHSS account" };
+  const stageIndex = id => Math.max(0, STAGES.findIndex(s => s.id === id));
+
+  // ---------- storage ----------
+  const ls = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  };
+  const uuid = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+    : "id-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+
+  function remoteApi() {
+    // Accepts the project address with or without "/rest/v1/" on the end.
+    const base = CONFIG.SUPABASE_URL.trim().replace(/\/+$/, "").replace(/\/rest\/v1$/, "") + "/rest/v1/";
+    const key = CONFIG.SUPABASE_ANON_KEY.trim();
+    // Older "anon" keys (starting eyJ) also go in the Authorization header; newer "sb_publishable_" keys don't.
+    const authHeaders = key.startsWith("eyJ") ? { apikey: key, Authorization: "Bearer " + key } : { apikey: key };
+    async function req(path, opts = {}) {
+      const r = await fetch(base + path, Object.assign({}, opts, {
+        headers: Object.assign({}, authHeaders, { "Content-Type": "application/json" }, opts.headers || {}),
+      }));
+      if (!r.ok) { const t = await r.text().catch(() => ""); const e = new Error(t || r.statusText); e.status = r.status; throw e; }
+      if (r.status === 204) return null;
+      const txt = await r.text(); return txt ? JSON.parse(txt) : null;
+    }
+    const enc = encodeURIComponent;
+    const rep = { Prefer: "return=representation" };
+    return {
+      mode: "remote",
+      listIdeas: () => req("ideas?select=*&order=updated_at.desc&limit=1000"),
+      addIdea: d => req("ideas", { method: "POST", headers: rep, body: JSON.stringify(d) }).then(r => r && r[0]),
+      updateIdea: (id, d) => req("ideas?id=eq." + enc(id), { method: "PATCH", headers: rep, body: JSON.stringify(d) }).then(r => r && r[0]),
+      deleteIdea: id => req("ideas?id=eq." + enc(id), { method: "DELETE" }),
+      listComments: id => req("comments?select=*&idea_id=eq." + enc(id) + "&order=created_at.asc&limit=500"),
+      addComment: d => req("comments", { method: "POST", headers: rep, body: JSON.stringify(d) }).then(r => r && r[0]),
+      deleteComment: id => req("comments?id=eq." + enc(id), { method: "DELETE" }),
+    };
+  }
+
+  function localApi() {
+    const K = "rnb-demo-ideas", KC = "rnb-demo-comments";
+    if (!ls.get("rnb-demo-seeded", false)) {
+      const old = (t, label, fmt, d) => ({ id: uuid(), title: t, format: fmt || "", account: "undecided", audience: "", hook: "", team: "",
+        due_date: null, link: "", notes: "", stage: "posted", added_by: label, created_at: d, updated_at: d, posted_at: null });
+      ls.set(K, [
+        old("What are you listening to?", "Earlier post", "Trend", "2026-06-01T00:00:00Z"),
+        old("UNNC 10pm in the Library", "Summer 2026 pilot", "", "2026-07-01T00:00:00Z"),
+        old("Graduation", "Summer 2026 pilot", "", "2026-07-02T00:00:00Z"),
+        old("Graduation, DVD style", "Summer 2026 pilot", "", "2026-07-03T00:00:00Z"),
+      ]);
+      ls.set("rnb-demo-seeded", true);
+    }
+    const all = () => ls.get(K, []), allC = () => ls.get(KC, []);
+    const ok = v => Promise.resolve(v);
+    return {
+      mode: "demo",
+      listIdeas: () => ok(all().slice().sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""))),
+      addIdea: d => { const now = new Date().toISOString(); const row = Object.assign({ id: uuid(), created_at: now, updated_at: now }, d); ls.set(K, [row, ...all()]); return ok(row); },
+      updateIdea: (id, d) => { let row; ls.set(K, all().map(r => r.id === id ? (row = Object.assign({}, r, d)) : r)); return ok(row); },
+      deleteIdea: id => { ls.set(K, all().filter(r => r.id !== id)); ls.set(KC, allC().filter(c => c.idea_id !== id)); return ok(null); },
+      listComments: id => ok(allC().filter(c => c.idea_id === id).sort((a, b) => a.created_at.localeCompare(b.created_at))),
+      addComment: d => { const row = Object.assign({ id: uuid(), created_at: new Date().toISOString() }, d); ls.set(KC, [...allC(), row]); return ok(row); },
+      deleteComment: id => { ls.set(KC, allC().filter(c => c.id !== id)); return ok(null); },
+    };
+  }
+
+  const api = CONFIG.SUPABASE_URL.trim() && CONFIG.SUPABASE_ANON_KEY.trim() ? remoteApi() : localApi();
+
+  // ---------- state ----------
+  const state = {
+    status: "loading", ideas: [], filter: "all", q: "", modal: null, comments: [],
+    myName: ls.get("rnb-name", ""), lastSync: null,
+  };
+
+  // ---------- helpers ----------
+  function el(tag, attrs = {}, ...kids) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (v == null || v === false) continue;
+      if (k === "class") e.className = v;
+      else if (k === "text") e.textContent = v;
+      else if (k === "style") e.style.cssText = v;
+      else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+      else e.setAttribute(k, v === true ? "" : v);
+    }
+    for (const k of kids.flat()) {
+      if (k == null || k === false) continue;
+      e.append(k instanceof Node ? k : document.createTextNode(String(k)));
+    }
+    return e;
+  }
+  const todayStr = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  const monthKey = iso => (iso || new Date().toISOString()).slice(0, 7);
+  const fmtDate = s => {
+    if (!s) return "";
+    const d = new Date(String(s).length === 10 ? s + "T00:00:00" : s);
+    return isNaN(d) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  };
+  let toastTimer;
+  function toast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3200);
+  }
+  async function attempt(fn) {
+    try { return { ok: true, value: await fn() }; }
+    catch (e) {
+      if (e && e.status === 401) toast("The board couldn't save. Check the Supabase key in the settings at the top of index.html.");
+      else if (e && e.status >= 400 && e.status < 500) toast("That didn't save. Some details may be too long or not allowed.");
+      else toast("That didn't save. Check your connection and try again.");
+      console.error(e);
+      return { ok: false };
+    }
+  }
+  function rememberName(n) { n = (n || "").trim(); if (n && n !== state.myName) { state.myName = n; ls.set("rnb-name", n); } }
+
+  // ---------- data ----------
+  let loading = false;
+  async function load(quiet) {
+    if (loading) return; loading = true;
+    try {
+      const rows = await api.listIdeas();
+      state.ideas = rows || [];
+      state.status = "ready"; state.lastSync = new Date();
+    } catch (e) {
+      console.error(e);
+      if (!quiet || state.status !== "ready") state.status = "error";
+    }
+    loading = false;
+    renderAll();
+  }
+  function upsertLocal(row) {
+    if (!row) return;
+    const i = state.ideas.findIndex(x => x.id === row.id);
+    if (i >= 0) state.ideas[i] = row; else state.ideas.unshift(row);
+  }
+
+  function visibleIdeas() {
+    const q = state.q.trim().toLowerCase();
+    const me = state.myName.trim().toLowerCase();
+    return state.ideas.filter(i => {
+      if (state.filter === "me" && (!me || (i.added_by || "").trim().toLowerCase() !== me)) return false;
+      if (state.filter === "fhss" && i.account !== "fhss") return false;
+      if (state.filter === "own" && i.account !== "mine") return false;
+      if (q) {
+        const hay = [i.title, i.team, i.format, i.audience, i.hook, i.added_by].join(" ").toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    }).sort((a, b) => (b.updated_at || "").localeCompare(a.updated_at || ""));
+  }
+  const postedThisMonth = () => state.ideas.filter(i => i.stage === "posted" && i.posted_at && monthKey(i.posted_at) === monthKey());
+
+  // ---------- render ----------
+  function renderStrip() {
+    document.getElementById("monthLabel").textContent = new Date().toLocaleDateString("en-GB", { month: "long" });
+    const done = postedThisMonth().length, target = CONFIG.MONTHLY_TARGET;
+    document.getElementById("blocks").replaceChildren(...Array.from({ length: Math.max(target, done) }, (_, i) => el("i", { class: i < done ? "on" : "" })));
+    document.getElementById("targetNum").textContent = done + " of " + target + " posted";
+    document.getElementById("stageCounts").replaceChildren(...STAGES.slice(0, 5).map(s => {
+      const n = state.ideas.filter(i => (i.stage || "idea") === s.id).length;
+      return el("span", {}, el("b", { text: String(n) }), " " + s.en.toLowerCase());
+    }));
+  }
+
+  function card(i) {
+    const idx = stageIndex(i.stage);
+    const next = STAGES[idx + 1];
+    const late = i.due_date && i.stage !== "posted" && i.due_date < todayStr();
+    const acctTag = i.account === "fhss" ? el("span", { class: "tag fhss", text: "FHSS" })
+      : i.account === "mine" ? el("span", { class: "tag mine", text: "Own account" }) : null;
+    const node = el("article", { class: "card", tabindex: "0", role: "button", "aria-label": "Open " + (i.title || "idea") },
+      el("div", { class: "row" }, i.format ? el("span", { class: "tag", text: i.format }) : null, acctTag),
+      el("h3", { text: i.title || "Untitled idea" }),
+      i.audience ? el("p", { class: "aud", text: "For: " + i.audience }) : null,
+      el("div", { class: "meta" },
+        el("span", { class: "team", text: i.team || i.added_by || "" }),
+        i.stage === "posted"
+          ? (i.posted_at ? el("span", { class: "due", text: fmtDate(i.posted_at) }) : null)
+          : (i.due_date ? el("span", { class: "due" + (late ? " late" : ""), text: (late ? "Late: " : "Draft by ") + fmtDate(i.due_date) }) : null)
+      ),
+      next ? el("button", { class: "adv", type: "button", text: "Move to " + next.en + " →",
+        onclick: e => { e.stopPropagation(); moveStage(i, next.id); } }) : null
+    );
+    node.addEventListener("click", () => openIdea(i.id));
+    node.addEventListener("keydown", e => { if (e.target === node && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openIdea(i.id); } });
+    return node;
+  }
+
+  function renderBoard() {
+    const ideas = visibleIdeas();
+    document.getElementById("board").replaceChildren(...STAGES.map(s => {
+      const list = ideas.filter(i => (i.stage || "idea") === s.id);
+      const empty = list.length ? null : el("div", { class: "empty", text:
+        state.status === "loading" ? "Loading…"
+        : s.id === "idea" ? "No ideas yet. Use New idea to add the first one."
+        : "Nothing here yet." });
+      return el("section", { class: "col", "aria-label": s.en },
+        el("div", { class: "colhead" },
+          el("span", { class: "shape " + s.shape, style: "background:" + s.color }),
+          el("span", { class: "nm", text: s.en }), el("span", { class: "cnl cn", text: s.cn }),
+          el("span", { class: "ct", text: String(list.length) })),
+        s.hint ? el("div", { class: "colhint", text: s.hint }) : null,
+        list.map(card), empty);
+    }));
+  }
+
+  function renderChrome() {
+    document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.f === state.filter)));
+    const n = document.getElementById("notice");
+    let msg = "";
+    if (api.mode === "demo") msg = "Demo mode: ideas are saved only in this browser. Add your Supabase details to index.html to share the board with the group.";
+    else if (state.status === "error") msg = "The board couldn't load. Check your connection and reload the page.";
+    n.textContent = msg; n.hidden = !msg;
+    document.getElementById("sync").textContent = api.mode === "remote" && state.lastSync
+      ? "Updated " + state.lastSync.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) + ". Refreshes every " + CONFIG.REFRESH_SECONDS + " seconds." : "";
+  }
+
+  function renderAll() {
+    renderChrome(); renderStrip(); renderBoard();
+    if (state.modal && state.modal.kind === "idea") refreshIdeaModal();
+  }
+
+  // ---------- writes ----------
+  async function moveStage(i, stageId) {
+    const patch = { stage: stageId, updated_at: new Date().toISOString() };
+    if (stageId === "posted" && !i.posted_at) patch.posted_at = new Date().toISOString();
+    if (stageId !== "posted" && i.posted_at) patch.posted_at = null;
+    const res = await attempt(() => api.updateIdea(i.id, patch));
+    if (res.ok) { upsertLocal(res.value || Object.assign({}, i, patch)); renderAll(); toast("Moved to " + STAGES[stageIndex(stageId)].en); }
+  }
+
+  // ---------- modal ----------
+  function closeModal() {
+    state.modal = null; state.comments = [];
+    document.getElementById("modalRoot").replaceChildren();
+    document.removeEventListener("keydown", escClose);
+    if (api.mode === "remote") load(true);
+  }
+  function escClose(e) { if (e.key === "Escape") closeModal(); }
+  function mountModal(panel) {
+    const ov = el("div", { class: "overlay", onclick: e => { if (e.target === ov) closeModal(); } }, panel);
+    document.getElementById("modalRoot").replaceChildren(ov);
+    document.addEventListener("keydown", escClose);
+    const first = panel.querySelector("input, select, textarea");
+    if (first) first.focus({ preventScroll: true });
+  }
+  function field(id, label, input, full, note) {
+    return el("div", { class: "f" + (full ? " full" : "") },
+      el("label", { for: id }, label, note ? el("em", { text: " " + note }) : null), input);
+  }
+  function buildForm(i, isNew) {
+    const v = k => (i && i[k]) || "";
+    const fmt = el("select", { id: "f-format" },
+      el("option", { value: "", text: "Choose a format" }),
+      FORMATS.map(f => el("option", { value: f, text: f, selected: v("format") === f })));
+    const acct = el("select", { id: "f-account" },
+      Object.entries(ACCOUNTS).map(([k, t]) => el("option", { value: k, text: t, selected: (v("account") || "undecided") === k })));
+    return el("form", { class: "grid", id: "ideaForm", onsubmit: e => e.preventDefault() },
+      field("f-title", "Idea", el("input", { id: "f-title", value: v("title"), required: true, maxlength: "120", placeholder: "e.g. POV: week 10 and the essay brief drops" }), true),
+      isNew ? field("f-name", "Your name", el("input", { id: "f-name", value: state.myName, maxlength: "60", autocomplete: "name" })) : null,
+      field("f-format", "Format", fmt),
+      field("f-account", "Where it goes", acct),
+      field("f-audience", "Who's it for", el("input", { id: "f-audience", value: v("audience"), maxlength: "160", placeholder: "e.g. Year 12s choosing a course" }), !isNew),
+      field("f-hook", "First 2 seconds", el("textarea", { id: "f-hook", maxlength: "500", placeholder: "Cover text, opening shot, the hook" }, v("hook")), true),
+      field("f-team", "Team", el("input", { id: "f-team", value: v("team"), maxlength: "160", placeholder: "Names and roles: filming, editing, on camera" })),
+      field("f-due", "Draft by", el("input", { id: "f-due", type: "date", value: v("due_date") })),
+      field("f-link", "Link", el("input", { id: "f-link", type: "url", value: v("link"), maxlength: "500", placeholder: "https://" }), true, "trend you're copying, or the post once it's live"),
+      field("f-notes", "Notes", el("textarea", { id: "f-notes", maxlength: "2000" }, v("notes")), true)
+    );
+  }
+  function readForm() {
+    const g = id => { const n = document.getElementById(id); return n ? n.value.trim() : ""; };
+    return { title: g("f-title"), format: g("f-format"), account: g("f-account") || "undecided", audience: g("f-audience"),
+      hook: g("f-hook"), team: g("f-team"), due_date: g("f-due") || null, link: g("f-link"), notes: g("f-notes") };
+  }
+
+  function openNew() {
+    state.modal = { kind: "new" };
+    let busy = false;
+    const save = el("button", { class: "btn primary", type: "button", text: "Add idea", onclick: async () => {
+      if (busy) return;
+      const data = readForm();
+      if (!data.title) { document.getElementById("f-title").focus(); toast("Give the idea a short title first."); return; }
+      const name = document.getElementById("f-name").value.trim();
+      rememberName(name);
+      busy = true; save.disabled = true;
+      const now = new Date().toISOString();
+      const res = await attempt(() => api.addIdea(Object.assign(data, { stage: "idea", added_by: name, created_at: now, updated_at: now, posted_at: null })));
+      busy = false; save.disabled = false;
+      if (res.ok) { upsertLocal(res.value); closeModal(); renderAll(); toast("Idea added"); }
+    }});
+    mountModal(el("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": "New idea" },
+      el("div", { class: "phead" }, el("div", {}, el("h2", { text: "New idea" }),
+        el("div", { class: "who", text: "Answer what you can now. You can fill in the rest later." })),
+        el("button", { class: "x", type: "button", "aria-label": "Close", text: "×", onclick: closeModal })),
+      buildForm(null, true),
+      el("div", { class: "actions" }, save, el("button", { class: "btn quiet", type: "button", text: "Cancel", onclick: closeModal }))));
+  }
+
+  function armDelete(btn, label, onConfirm) {
+    let armed = false, t;
+    btn.addEventListener("click", async e => {
+      e.stopPropagation();
+      if (!armed) {
+        armed = true; btn.textContent = "Tap again to delete"; btn.classList.add("arm");
+        t = setTimeout(() => { armed = false; btn.textContent = label; btn.classList.remove("arm"); }, 4000);
+        return;
+      }
+      clearTimeout(t); btn.disabled = true;
+      await onConfirm();
+      btn.disabled = false;
+    });
+    return btn;
+  }
+
+  function openIdea(id) {
+    const i = state.ideas.find(x => x.id === id);
+    if (!i) return;
+    state.modal = { kind: "idea", id };
+    let busy = false;
+
+    const save = el("button", { class: "btn primary", type: "button", text: "Save changes", onclick: async () => {
+      if (busy) return;
+      const data = readForm();
+      if (!data.title) { toast("The idea needs a title."); return; }
+      busy = true; save.disabled = true;
+      data.updated_at = new Date().toISOString();
+      const res = await attempt(() => api.updateIdea(id, data));
+      busy = false; save.disabled = false;
+      if (res.ok) {
+        upsertLocal(res.value || Object.assign({}, i, data));
+        renderChrome(); renderStrip(); renderBoard();
+        const h = document.getElementById("ideaTitle"); if (h) h.textContent = data.title;
+        toast("Saved");
+      }
+    }});
+    const del = armDelete(el("button", { class: "danger", type: "button", text: "Delete idea" }), "Delete idea", async () => {
+      const res = await attempt(() => api.deleteIdea(id));
+      if (res.ok) { state.ideas = state.ideas.filter(x => x.id !== id); closeModal(); renderAll(); toast("Idea deleted"); }
+    });
+
+    const fbList = el("div", { id: "fbList", style: "display:flex;flex-direction:column;gap:8px" }, el("p", { class: "small", text: "Loading feedback…" }));
+    const fbName = el("input", { class: "nm", id: "fb-name", maxlength: "60", placeholder: "Your name", value: state.myName, "aria-label": "Your name" });
+    const fbInput = el("input", { id: "fb-input", maxlength: "1000", placeholder: "Feedback, a question, a next step", "aria-label": "Feedback" });
+    const fbForm = el("form", { class: "fbform", onsubmit: async e => {
+      e.preventDefault();
+      const body = fbInput.value.trim(); if (!body) return;
+      const author = fbName.value.trim(); rememberName(author);
+      fbInput.disabled = true;
+      const res = await attempt(() => api.addComment({ idea_id: id, author, body }));
+      fbInput.disabled = false;
+      if (res.ok) { fbInput.value = ""; fbInput.focus(); await loadComments(id); }
+    }}, fbName, fbInput, el("button", { class: "btn", type: "submit", text: "Post" }));
+
+    mountModal(el("div", { class: "panel", role: "dialog", "aria-modal": "true", "aria-label": i.title || "Idea" },
+      el("div", { class: "phead" }, el("div", { style: "min-width:0" }, el("h2", { id: "ideaTitle", text: i.title || "Untitled idea" }), el("div", { class: "who", id: "whoLine" })),
+        el("button", { class: "x", type: "button", "aria-label": "Close", text: "×", onclick: closeModal })),
+      el("div", { class: "steps", id: "stepsBox" }), el("div", { class: "stepnote", id: "stepNote" }),
+      buildForm(i, false),
+      el("div", { class: "actions" }, save, el("span", { class: "spacer" }), del),
+      el("section", { class: "fb" }, el("h4", { text: "Feedback" }), fbList, fbForm)));
+
+    refreshIdeaModal();
+    loadComments(id);
+  }
+
+  function refreshIdeaModal() {
+    const m = state.modal; if (!m || m.kind !== "idea") return;
+    const i = state.ideas.find(x => x.id === m.id);
+    if (!i) { closeModal(); toast("That idea was deleted."); return; }
+    const box = document.getElementById("stepsBox"); if (!box) return;
+    const cur = stageIndex(i.stage);
+    box.replaceChildren(...STAGES.map((s, n) => el("button", {
+      type: "button", class: "step" + (n === cur ? " cur" : n < cur ? " done" : ""), disabled: n === cur,
+      "aria-current": n === cur ? "step" : null, title: n !== cur ? "Move to " + s.en : null,
+      onclick: () => moveStage(i, s.id) }, s.en, el("span", { class: "cn", text: s.cn }))));
+    document.getElementById("stepNote").textContent = STAGES[cur].id === "check"
+      ? "Richard reviews first. Anything going on the FHSS account also goes to Marketing." : "Tap a stage to move the idea.";
+    const bits = [];
+    if (i.added_by) bits.push((/pilot|earlier/i.test(i.added_by) ? "" : "Added by ") + i.added_by);
+    if (i.created_at && !/pilot|earlier/i.test(i.added_by || "")) bits.push(fmtDate(i.created_at));
+    document.getElementById("whoLine").textContent = bits.join(" · ");
+  }
+
+  async function loadComments(id) {
+    try { state.comments = (await api.listComments(id)) || []; }
+    catch (e) { console.error(e); state.comments = null; }
+    if (!state.modal || state.modal.id !== id) return;
+    const box = document.getElementById("fbList"); if (!box) return;
+    if (state.comments === null) { box.replaceChildren(el("p", { class: "small", text: "Feedback couldn't load." })); return; }
+    if (!state.comments.length) { box.replaceChildren(el("p", { class: "small", text: "No feedback yet." })); return; }
+    box.replaceChildren(...state.comments.map(c => el("div", { class: "fbitem" },
+      el("div", { class: "by" }, el("span", { text: (c.author || "Someone") + (c.created_at ? " · " + fmtDate(c.created_at) : "") }),
+        armDelete(el("button", { class: "danger", type: "button", text: "Delete" }), "Delete", async () => {
+          const res = await attempt(() => api.deleteComment(c.id));
+          if (res.ok) loadComments(id);
+        })),
+      el("p", { text: c.body || "" }))));
+  }
+
+  // ---------- monthly update ----------
+  function reportText() {
+    const mk = monthKey();
+    const monthName = new Date().toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+    const posted = postedThisMonth();
+    const fhss = posted.filter(i => i.account === "fhss").length;
+    const own = posted.filter(i => i.account === "mine").length;
+    const other = posted.length - fhss - own;
+    const active = new Set(state.ideas.filter(i => i.updated_at && monthKey(i.updated_at) === mk && i.added_by && !/pilot|earlier/i.test(i.added_by))
+      .map(i => i.added_by.trim().toLowerCase()));
+    const inProd = state.ideas.filter(i => ["plan", "film", "edit", "check"].includes(i.stage)).length;
+    const waiting = state.ideas.filter(i => (i.stage || "idea") === "idea").length;
+    return [
+      "RedNote Student Creator Group: " + monthName + " update",
+      "",
+      "1. Creators: " + active.size + " students added or worked on ideas this month",
+      "2. Output: " + posted.length + " posted (target " + CONFIG.MONTHLY_TARGET + "); " + fhss + " FHSS account, " + own + " own accounts" + (other ? ", " + other + " account not recorded" : ""),
+      ...(posted.length ? posted.map(i => "   - " + (i.title || "Untitled")) : ["   - none yet"]),
+      "3. Results (from Marketing): ",
+      "4. Next month: " + inProd + " in production, " + waiting + " new ideas waiting",
+      "5. Needs: ",
+    ].join("\n");
+  }
+  function openReport() {
+    state.modal = { kind: "report" };
+    const ta = el("textarea", { id: "reportText", readonly: true }, reportText());
+    const copy = el("button", { class: "btn primary", type: "button", text: "Copy text", onclick: () => {
+      const fallback = () => { ta.focus(); ta.select(); try { document.execCommand("copy"); toast("Copied"); } catch (e) { toast("Selected. Copy it with your keyboard."); } };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(ta.value).then(() => toast("Copied"), fallback);
+      else fallback();
+    }});
+    mountModal(el("div", { class: "panel report", role: "dialog", "aria-modal": "true", "aria-label": "Monthly update" },
+      el("div", { class: "phead" }, el("div", {}, el("h2", { text: "Monthly update" }),
+        el("div", { class: "who", text: "Draft for the Faculty Management Board, built from the board. Add Marketing's figures to line 3." })),
+        el("button", { class: "x", type: "button", "aria-label": "Close", text: "×", onclick: closeModal })),
+      ta, el("div", { class: "actions" }, copy),
+      el("p", { class: "small", text: "Creators are counted by the names people typed when adding ideas. Change the monthly target in the settings at the top of index.html." })));
+  }
+
+  // ---------- wiring ----------
+  document.getElementById("newBtn").addEventListener("click", openNew);
+  document.getElementById("reportBtn").addEventListener("click", openReport);
+  document.querySelectorAll(".chip").forEach(c => c.addEventListener("click", () => {
+    if (c.dataset.f === "me" && !state.myName) toast("Add an idea or a comment with your name first.");
+    state.filter = c.dataset.f; renderChrome(); renderBoard();
+  }));
+  let st;
+  document.getElementById("search").addEventListener("input", e => { clearTimeout(st); st = setTimeout(() => { state.q = e.target.value; renderBoard(); }, 120); });
+
+  renderAll();
+  load();
+  if (api.mode === "remote") {
+    setInterval(() => { if (!document.hidden && !state.modal) load(true); }, Math.max(5, CONFIG.REFRESH_SECONDS) * 1000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden && !state.modal) load(true); });
+  }
+})();
+</script>
+</body>
+</html>
